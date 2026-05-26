@@ -8,11 +8,12 @@ const char* password = "password";
 
 // 設定 Discord Webhook 資訊
 const char* discord_server = "discord.com";
-const char* discord_path = "/api/webhooks/123456789/abcdefghi";
+const char* discord_path = "/api/webhooks/123456790/dd-aa-cc-bb";
+
 
 // 設定定時發送時間 (每 30 分鐘發送一次)
 unsigned long lastDiscordTime = 0;
-const unsigned long discordInterval = 30 * 60 * 1000;
+const unsigned long discordInterval = 1 * 60 * 1000;
 
 // 實例網頁伺服器服務
 WiFiServer server(80);  // 連接埠 80（標準網頁 HTTP 通訊埠）
@@ -133,6 +134,16 @@ void setup() {
 }
 
 void loop() {
+  unsigned long currentMillis = millis();
+  if (currentMillis - lastDiscordTime >= discordInterval) {
+    lastDiscordTime = currentMillis;
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+    if (!isnan(h) && !isnan(t)) {
+      sendToDiscord(t, h, "定時報告");
+    }
+  }
+
 
   WiFiClient client = server.available();
   if (client) {
@@ -162,8 +173,11 @@ void loop() {
     else if (request.indexOf("GET /trigger_discord") >= 0) {
       float h = dht.readHumidity();
       float t = dht.readTemperature();
-      if (isnan(h) || isnan(t)) { t = 0.0; h = 0.0; }
-      
+      if (isnan(h) || isnan(t)) {
+        t = 0.0;
+        h = 0.0;
+      }
+
       sendToDiscord(t, h, "手動觸發");
 
       client.println("HTTP/1.1 200 OK");
